@@ -60,22 +60,23 @@ where
         // this literally makes me sick
         if !self.is_empty() && !self.only_head() {
             // as_mut() - gets the value in the Option as a mutable reference.
+            // &Option<T> -> Option<&mut T>
             let mut tail = self.tail.as_mut().unwrap();
 
             // &mut *Rc::make_mut(&mut tail) - Gets a mutable reference to the
-            // inner value as of Rc<> which is RefCell.
+            // inner value of Rc<> which is RefCell.
             let t: &mut RefCell<Node<T>> = &mut *Rc::make_mut(&mut tail);
 
             // RefCell.get_mut() - Gets a mutable reference to the inner data.
-            let n: &mut Node<T> = t.get_mut();
+            let inner: &mut Node<T> = t.get_mut();
 
             // Clone the v and wrap it as a NodeRef.
             let next = Rc::new(RefCell::new(Node::new(v.clone())));
 
-            // Sets previous tails next.
-            n.set_next(Some(next.clone()));
+            // Sets the previous tail pointer to the next new tail.
+            inner.set_next(Some(next.clone()));
 
-            // Set tail as next.
+            // Linked List updates the tail reference.
             self.tail = Some(next.clone());
         }
 
@@ -92,7 +93,7 @@ where
 
     pub fn tail(&self) -> T {
         let tail = self.tail.as_ref().unwrap().clone();
-        let result = tail.try_borrow().unwrap().value.clone();
+        let result = tail.borrow().value.clone();
 
         result
     }
