@@ -27,6 +27,8 @@ where
     T: Clone,
 {
     pub fn push(&mut self, v: T) {
+        // TODO(ccdle12): Update head to be a NodeRef<T> as head and tail will
+        // reference the same object.
         if self.is_empty() {
             self.head = Some(Node::new(v.clone()));
         }
@@ -75,7 +77,6 @@ where
 
     /// Returns the head of the List as an Option<T>.
     ///
-    ///
     /// # Examples
     ///
     /// ```
@@ -92,6 +93,19 @@ where
     }
 
     /// Returns the tail of the List.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use linked_list::LinkedList;
+    ///
+    /// let mut linked_list = LinkedList::<String>::default();
+    /// linked_list.push("Hello".to_string());
+    /// linked_list.push("World".to_string());
+    ///
+    /// let tail = linked_list.tail();
+    /// assert_eq!(tail, Some("World".to_string()));
+    /// ```
     pub fn tail(&self) -> Option<T> {
         self.tail.as_ref().map(|h| h.borrow().value.clone())
     }
@@ -150,5 +164,14 @@ mod test {
     fn access_none_tail() {
         let linked_list = LinkedList::<String>::default();
         assert_eq!(linked_list.tail(), None);
+    }
+
+    #[test]
+    fn head_and_tail() {
+        let mut linked_list = LinkedList::<String>::default();
+        linked_list.push(String::from("hello"));
+
+        assert_eq!(linked_list.head(), Some("hello".to_string()));
+        assert_eq!(linked_list.tail(), Some("hello".to_string()));
     }
 }
