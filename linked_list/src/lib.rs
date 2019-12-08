@@ -23,7 +23,7 @@ impl<T> Node<T> {
 }
 
 #[derive(Clone)]
-struct LinkedList<T> {
+pub struct LinkedList<T> {
     head: Option<Node<T>>,
     tail: NodeRef<T>,
     size: u32,
@@ -91,18 +91,27 @@ where
         self.size == 1
     }
 
-    pub fn tail(&self) -> T {
-        let tail = self.tail.as_ref().unwrap().clone();
-        let result = tail.borrow().value.clone();
-
-        result
+    /// Returns the head of the List as an Option<T>.
+    ///
+    ///
+    /// # Examples
+    ///
+    /// ```
+    // /// use crate::LinkedList;
+    ///
+    // /// let mut linked_list = LinkedList::<String>::default();
+    // /// linked_list.push("Hello".to_string());
+    ///
+    // /// let head = linked_list.head();
+    // /// assert_eq!(head, Some("Hello".to_string()));
+    /// ```
+    pub fn head(&self) -> Option<T> {
+        self.head.as_ref().map(|h| h.value.clone())
     }
 
-    pub fn head(&self) -> T {
-        let head = self.head.as_ref().unwrap().clone();
-        let result = head.value.clone();
-
-        result
+    /// Returns the tail of the List.
+    pub fn tail(&self) -> Option<T> {
+        self.tail.as_ref().map(|h| h.borrow().value.clone())
     }
 }
 
@@ -153,9 +162,7 @@ mod linked_list_tests {
     fn push_one_node() {
         let mut linked_list = LinkedList::<String>::default();
 
-        let a = "1".to_string();
-        linked_list.push(a);
-
+        linked_list.push("1".to_string());
         assert_eq!(linked_list.size, 1);
     }
 
@@ -166,13 +173,10 @@ mod linked_list_tests {
         for i in 1..3 {
             linked_list.push(i.to_string());
         }
+
         assert_eq!(*&linked_list.size, 2);
-
-        let head = linked_list.head();
-        assert_eq!(head, "1".to_string());
-
-        let tail = linked_list.tail();
-        assert_eq!(tail, "2".to_string());
+        assert_eq!(linked_list.head(), Some("1".to_string()));
+        assert_eq!(linked_list.tail(), Some("2".to_string()));
     }
 
     #[test]
@@ -182,9 +186,20 @@ mod linked_list_tests {
         for i in 1..4 {
             linked_list.push(i.to_string());
         }
-        assert_eq!(*&linked_list.size, 3);
 
-        let tail = linked_list.tail();
-        assert_eq!(tail, "3".to_string());
+        assert_eq!(*&linked_list.size, 3);
+        assert_eq!(linked_list.tail(), Some("3".to_string()));
+    }
+
+    #[test]
+    fn access_none_head() {
+        let linked_list = LinkedList::<String>::default();
+        assert_eq!(linked_list.head(), None);
+    }
+
+    #[test]
+    fn access_none_tail() {
+        let linked_list = LinkedList::<String>::default();
+        assert_eq!(linked_list.tail(), None);
     }
 }
