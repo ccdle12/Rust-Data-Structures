@@ -12,7 +12,10 @@ pub(crate) struct Node<T> {
     pub next: NodeRef<T>,
 }
 
-impl<T> Node<T> {
+impl<T> Node<T>
+where
+    T: Clone + std::fmt::Debug,
+{
     pub fn new(value: T) -> Node<T> {
         Node { value, next: None }
     }
