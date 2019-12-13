@@ -66,7 +66,7 @@ where
             // ONLY one reference.
             // Ok if there is something in there, and returns as an Option<T>.
             // expect returns the value if Some
-            let result: RefCell<Node<T>> = Rc::try_unwrap(h).ok().expect("");
+            let result: RefCell<Node<T>> = Rc::try_unwrap(h).ok().expect("something went wrong");
             result.into_inner().value
         })
     }
@@ -80,38 +80,30 @@ where
             return self.head();
         }
 
+        if index == self.size - 1 {
+            return self.tail();
+        }
+
         let mut current: NodeRef<T> = self.head.clone();
         let mut count = 1;
 
         while count <= index {
-            let mut c = current.as_mut().unwrap();
-            let t: &mut RefCell<Node<T>> = &mut *Rc::make_mut(&mut c);
-            let result: Node<T> = t.get_mut().clone();
-            let r: NodeRef<T> = result.next;
-            println!("count: {:?} | result next: {:?}", count, &r);
-
-            //3. Is next None?
-            if let Some(_i) = &r {
-                //5. is there something at Next?
-                //6. Replace a mutable reference which is current
-                current = r.clone();
-                let mut j = current.as_mut().unwrap();
-                let m: &mut RefCell<Node<T>> = &mut *Rc::make_mut(&mut j);
-                let b: Node<T> = m.get_mut().clone();
-                println!("count: {:?} | new current value: {:?}", count, b);
-            } else {
-                return None;
-            }
+            let inner_current: Option<Rc<RefCell<Node<T>>>> = current.clone();
+            inner_current.map(|v| {
+                if let Some(next) = v.borrow_mut().next.clone() {
+                    current = Some(next);
+                } else {
+                    current = None;
+                }
+            });
 
             count += 1;
         }
 
-        let mut c = current.as_mut().unwrap();
-        let t: &mut RefCell<Node<T>> = &mut *Rc::make_mut(&mut c);
-        let result: Node<T> = t.get_mut().clone();
-
-        println!("result value: {:?}", result.value);
-        Some(result.value)
+        match current {
+            Some(v) => Some(v.borrow_mut().value.clone()),
+            None => None,
+        }
     }
 
     /// Returns the head of the List as an Option<T>.
