@@ -27,6 +27,18 @@ impl<T> LinkedList<T>
 where
     T: Clone + std::fmt::Debug,
 {
+    /// Adds a a value to the end of a LinkedList.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use linked_list::LinkedList;
+    ///
+    /// let mut linked_list = LinkedList::<String>::default();
+    /// linked_list.push("Hello".to_string());
+    ///
+    /// assert_eq!(linked_list.tail(), Some("Hello".to_string()));
+    /// ```
     pub fn push(&mut self, v: T) {
         let new = Rc::new(RefCell::new(Node::new(v)));
 
@@ -42,6 +54,19 @@ where
         self.tail = Some(new);
     }
 
+    /// Returns the value from a LinkedList and removes it from the LinkedList.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use linked_list::LinkedList;
+    ///
+    /// let mut linked_list = LinkedList::<String>::default();
+    /// linked_list.push("Hello".to_string());
+    ///
+    /// assert_eq!(linked_list.pop(), Some("Hello".to_string()));
+    /// assert_eq!(linked_list.is_empty(), true);
+    /// ```
     pub fn pop(&mut self) -> Option<T> {
         // Takes ownership of head.
         // map() applies to the inner value of Option (Rc)
@@ -71,39 +96,43 @@ where
         })
     }
 
-    fn is_empty(&self) -> bool {
+    /// Returns a boolean if a LinkedList is empty.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use linked_list::LinkedList;
+    ///
+    /// let mut linked_list = LinkedList::<String>::default();
+    /// assert_eq!(linked_list.is_empty(), true);
+    /// ```
+    pub fn is_empty(&self) -> bool {
         self.size == 0
     }
 
+    /// Gets the value from a LinkedList according to an index.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use linked_list::LinkedList;
+    ///
+    /// let mut linked_list = LinkedList::<String>::default();
+    /// linked_list.push("Hello".to_string());
+    ///
+    /// assert_eq!(linked_list.get(0), Some("Hello".to_string()));
+    /// ```
     pub fn get(&mut self, index: u32) -> Option<T> {
-        if index == 0 {
-            return self.head();
-        }
+        let mut current = self.head.clone();
 
-        if index == self.size - 1 {
-            return self.tail();
-        }
-
-        let mut current: NodeRef<T> = self.head.clone();
-        let mut count = 1;
-
-        while count <= index {
-            let inner_current: Option<Rc<RefCell<Node<T>>>> = current.clone();
-            inner_current.map(|v| {
-                if let Some(next) = v.borrow_mut().next.clone() {
-                    current = Some(next);
-                } else {
-                    current = None;
-                }
+        for _i in 0..index {
+            current.clone().map(|v| match v.borrow_mut().next.clone() {
+                Some(n) => current = Some(n),
+                None => current = None,
             });
-
-            count += 1;
         }
 
-        match current {
-            Some(v) => Some(v.borrow_mut().value.clone()),
-            None => None,
-        }
+        current.map(|v| v.borrow_mut().value.clone())
     }
 
     /// Returns the head of the List as an Option<T>.
@@ -116,8 +145,7 @@ where
     /// let mut linked_list = LinkedList::<String>::default();
     /// linked_list.push("Hello".to_string());
     ///
-    /// let head = linked_list.head();
-    /// assert_eq!(head, Some("Hello".to_string()));
+    /// assert_eq!(linked_list.head(), Some("Hello".to_string()));
     /// ```
     pub fn head(&self) -> Option<T> {
         self.head.as_ref().map(|h| h.borrow().value.clone())
@@ -134,8 +162,7 @@ where
     /// linked_list.push("Hello".to_string());
     /// linked_list.push("World".to_string());
     ///
-    /// let tail = linked_list.tail();
-    /// assert_eq!(tail, Some("World".to_string()));
+    /// assert_eq!(linked_list.tail(), Some("World".to_string()));
     /// ```
     pub fn tail(&self) -> Option<T> {
         self.tail.as_ref().map(|t| t.borrow().value.clone())
@@ -235,10 +262,12 @@ mod test {
         assert_eq!(linked_list.head(), Some("1".to_string()));
         assert_eq!(linked_list.tail(), Some("4".to_string()));
 
-        assert_eq!(linked_list.get(0).unwrap(), "1".to_string());
-        assert_eq!(linked_list.get(1).unwrap(), "2".to_string());
+        assert_eq!(linked_list.get(0), Some("1".to_string()));
+        assert_eq!(linked_list.get(1), Some("2".to_string()));
         assert_eq!(linked_list.get(2), Some("3".to_string()));
         assert_eq!(linked_list.get(3), Some("4".to_string()));
+        assert_eq!(linked_list.get(4), None);
+        assert_eq!(linked_list.get(100), None);
     }
 
     #[test]
