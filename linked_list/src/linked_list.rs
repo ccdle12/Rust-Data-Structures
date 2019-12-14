@@ -96,7 +96,7 @@ where
         })
     }
 
-    /// Returns a boolean if a LinkedList is empty.
+    /// Returns a boolean indicating the LinkedList is empty.
     ///
     /// # Examples
     ///
