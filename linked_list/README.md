@@ -2,8 +2,8 @@
 
 ## Data Structure
 
-A data structure that has a `list` of nodes referencing each in memory forming
-a list like structure.
+A data structure that has a `list` of nodes referencing the next node in memory 
+forming a list like structure.
 
 ## Rust
 

@@ -52,7 +52,7 @@ where
     /// Time Complexity: O(1)
     /// Space Complexity: O(1)
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```
     /// use linked_list::LinkedList;
@@ -86,7 +86,7 @@ where
     /// Time Complexity: O(1)
     /// Space Complexity: O(1)
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```
     /// use linked_list::LinkedList;
@@ -128,7 +128,7 @@ where
 
     /// Returns a boolean indicating the LinkedList is empty.
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```
     /// use linked_list::LinkedList;
@@ -145,7 +145,7 @@ where
     /// Time Complexity: O(n)
     /// Space Complexity: O(1)
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```
     /// use linked_list::LinkedList;
@@ -173,7 +173,7 @@ where
     /// Time Complexity: O(1)
     /// Space Complexity: O(1)
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```
     /// use linked_list::LinkedList;
@@ -192,7 +192,7 @@ where
     /// Time Complexity: O(1)
     /// Space Complexity: O(1)
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```
     /// use linked_list::LinkedList;
@@ -207,33 +207,34 @@ where
         self.tail.as_ref().map(|t| t.borrow().value.clone())
     }
 
-    // /// Deletes an item from the list according to an index.
-    // /// # Examples
-    // /// ```
-    // /// use linked_list::LinkedList;
-    // /// let mut linked_list = linked_list![1, 2, 3];
-    // /// linked_list.delete(1);
-    // /// assert_eq!()
-    // /// ```
+    /// Deletes an item from the list according to an index.
+    ///
+    /// Time Complexity: O(n)
+    /// Space Complexity: O(1)
+    ///
+    /// # Example
+    /// ```
+    /// use linked_list::LinkedList;
+    /// let mut linked_list = LinkedList::<String>::default();
+    /// linked_list.push("Hello".to_string());
+    /// linked_list.push("World".to_string());
+    ///
+    /// linked_list.delete(1);
+    /// assert_eq!(linked_list.len(), 1);
+    /// ```
     // TODO(ccdle12): it probably should return a Result<()> since trying to
     // delete at an index greater than size.
     pub fn delete(&mut self, index: u32) {
-        // Base cases to check:
-        // 1. Are we deleting head? (0) index.
-        // 2. Is the index greater than the list size?
-        //
         if index > self.size - 1 {
             return;
         }
 
+        // Current is the node that will be deleted.
+        // Previous will drop the pointer to current and point to the next node
+        // after current.
         let mut previous: NodeRef<T> = self.head.clone();
         let mut current: NodeRef<T> = previous.clone().unwrap().borrow_mut().next.clone();
 
-        // 1. If index is 0
-        // 2. Does head have a next?
-        // 3.   - move head to next
-        // 4. If it doesn't
-        // 5. set head to None
         if index == 0 {
             self.head = current.clone();
         }
@@ -254,17 +255,17 @@ where
 
         self.size -= 1;
 
-        if self.size > 1 {
-            self.tail = previous;
+        if self.size == 0 {
+            self.tail = None;
+            self.head = None;
         }
 
         if self.size == 1 {
             self.tail = self.head.clone();
         }
 
-        if self.size == 0 {
-            self.tail = None;
-            self.head = None;
+        if self.size > 1 {
+            self.tail = previous;
         }
     }
 }
