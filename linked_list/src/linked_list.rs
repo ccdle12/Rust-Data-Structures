@@ -22,7 +22,6 @@ impl<T> Default for LinkedList<T> {
     }
 }
 
-#[allow(dead_code)]
 impl<T> LinkedList<T>
 where
     T: Clone + std::fmt::Debug,
@@ -123,7 +122,7 @@ where
     /// assert_eq!(linked_list.get(0), Some("Hello".to_string()));
     /// ```
     pub fn get(&mut self, index: u32) -> Option<T> {
-        let mut current = self.head.clone();
+        let mut current: NodeRef<T> = self.head.clone();
 
         for _i in 0..index {
             current.clone().map(|v| match v.borrow_mut().next.clone() {
@@ -169,9 +168,21 @@ where
     }
 }
 
-// TODO(ccdle12): Seems like I need to create a wrapper IterStruct around the
-// LinkedList.
-// Implementations seem to just call pop()
+#[allow(unused_macros)]
+macro_rules! linked_list {
+    // $ similar to bash script exec
+    // execution a variadic number of parameters
+    // each expr is seperated by "," for "*" amount of times
+    ($($x: expr),*) => {{
+        let mut linked_list = LinkedList::default();
+
+        // Push each item to the linked list, according to the number of inputs
+        $(linked_list.push($x);)*
+        linked_list
+    }};
+}
+
+// Iterator that consumes the LinkedList.
 impl<T> Iterator for LinkedList<T>
 where
     T: Clone + std::fmt::Debug,
@@ -294,5 +305,11 @@ mod test {
         for i in linked_list.into_iter() {
             assert_eq!(i, format!("{}", i));
         }
+    }
+
+    #[test]
+    fn macro_linked_list() {
+        let linked_list = linked_list!("1".to_string(), "2".to_string());
+        assert_eq!(linked_list.tail(), Some("2".to_string()));
     }
 }
