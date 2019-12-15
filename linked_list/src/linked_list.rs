@@ -309,7 +309,7 @@ mod test {
 
     #[test]
     fn macro_linked_list() {
-        let linked_list = linked_list!("1".to_string(), "2".to_string());
+        let linked_list = linked_list!["1".to_string(), "2".to_string()];
         assert_eq!(linked_list.tail(), Some("2".to_string()));
     }
 }

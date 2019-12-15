@@ -12,6 +12,7 @@ pub(crate) struct Node<T> {
     pub next: NodeRef<T>,
 }
 
+#[allow(dead_code)]
 impl<T> Node<T>
 where
     T: Clone + std::fmt::Debug,
