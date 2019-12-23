@@ -1,3 +1,4 @@
+use crate::error::{LinkedListError, Result};
 use crate::node::{Node, NodeRef};
 use std::cell::RefCell;
 use std::iter::{ExactSizeIterator, Iterator};
@@ -77,8 +78,8 @@ where
             };
         }
 
-        self.size += 1;
         self.tail = Some(new);
+        self.size += 1;
     }
 
     /// Returns the value from a LinkedList and removes it from the LinkedList.
@@ -121,8 +122,11 @@ where
             // ONLY one reference.
             // Ok if there is something in there, and returns as an Option<T>.
             // expect returns the value if Some
-            let result: RefCell<Node<T>> = Rc::try_unwrap(h).ok().expect("something went wrong");
-            result.into_inner().value
+            Rc::try_unwrap(h)
+                .ok()
+                .expect("something went wrong")
+                .into_inner()
+                .value
         })
     }
 
@@ -222,18 +226,16 @@ where
     /// linked_list.delete(1);
     /// assert_eq!(linked_list.len(), 1);
     /// ```
-    // TODO(ccdle12): it probably should return a Result<()> since trying to
-    // delete at an index greater than size.
-    pub fn delete(&mut self, index: u32) {
+    pub fn delete(&mut self, index: u32) -> Result<()> {
         if index > self.size - 1 {
-            return;
+            return Err(LinkedListError::IndexOutOfRangeError);
         }
 
         // Current is the node that will be deleted.
-        // Previous will drop the pointer to current and point to the next node
-        // after current.
-        let mut previous: NodeRef<T> = self.head.clone();
-        let mut current: NodeRef<T> = previous.clone().unwrap().borrow_mut().next.clone();
+        // Previous will drop the pointer to current, and then point to the new
+        // next node, that comes after current.
+        let mut previous = self.head.clone();
+        let mut current = previous.clone().unwrap().borrow_mut().next.clone();
 
         if index == 0 {
             self.head = current.clone();
@@ -246,12 +248,10 @@ where
             }
         }
 
-        let next = match current.take() {
-            Some(n) => n.borrow_mut().next.clone(),
-            None => None,
-        };
-
-        previous.clone().map(|v| v.borrow_mut().next = next.clone());
+        let new_next = current.take().and_then(|v| v.borrow_mut().next.clone());
+        previous
+            .clone()
+            .map(|v| v.borrow_mut().next = new_next.clone());
 
         self.size -= 1;
 
@@ -267,6 +267,8 @@ where
         if self.size > 1 {
             self.tail = previous;
         }
+
+        Ok(())
     }
 }
 
@@ -415,7 +417,7 @@ mod test {
         assert_eq!(linked_list.len(), 5);
         assert_eq!(linked_list.get(2), Some("3".to_string()));
 
-        linked_list.delete(2);
+        linked_list.delete(2).unwrap();
         assert_eq!(linked_list.len(), 4);
         assert_eq!(linked_list.get(0), Some("1".to_string()));
         assert_eq!(linked_list.get(1), Some("2".to_string()));
@@ -428,7 +430,7 @@ mod test {
         let mut linked_list = linked_list!["1".to_string()];
         assert_eq!(linked_list.len(), 1);
 
-        linked_list.delete(0);
+        linked_list.delete(0).unwrap();
         assert_eq!(linked_list.len(), 0);
         assert_eq!(linked_list.head(), None);
 
@@ -440,7 +442,7 @@ mod test {
         assert_eq!(linked_list.get(0), Some("2".to_string()));
         assert_eq!(linked_list.get(1), Some("3".to_string()));
 
-        linked_list.delete(0);
+        linked_list.delete(0).unwrap();
         assert_eq!(linked_list.len(), 1);
         assert_eq!(linked_list.head(), Some("3".to_string()));
         assert_eq!(linked_list.tail(), Some("3".to_string()));
@@ -455,13 +457,13 @@ mod test {
         assert_eq!(linked_list.tail(), Some("2".to_string()));
         assert_eq!(linked_list.get(1), Some("2".to_string()));
 
-        linked_list.delete(1);
+        linked_list.delete(1).unwrap();
         assert_eq!(linked_list.len(), 1);
         assert_eq!(linked_list.get(0), Some("1".to_string()));
         assert_eq!(linked_list.get(1), None);
         assert_eq!(linked_list.tail(), Some("1".to_string()));
 
-        linked_list.delete(0);
+        linked_list.delete(0).unwrap();
         assert_eq!(linked_list.len(), 0);
         assert_eq!(linked_list.get(0), None);
         assert_eq!(linked_list.head(), None);
@@ -474,12 +476,19 @@ mod test {
         assert_eq!(linked_list.head(), Some("0".to_string()));
         assert_eq!(linked_list.tail(), Some("9".to_string()));
 
-        linked_list.delete(9);
+        linked_list.delete(9).unwrap();
         assert_eq!(linked_list.len(), 9);
         assert_eq!(linked_list.tail(), Some("8".to_string()));
 
-        linked_list.delete(8);
+        linked_list.delete(8).unwrap();
         assert_eq!(linked_list.len(), 8);
         assert_eq!(linked_list.tail(), Some("7".to_string()));
+    }
+
+    #[test]
+    #[should_panic]
+    fn delete_index_greater_than_size() {
+        let mut linked_list = linked_list!["1".to_string(), "2".to_string()];
+        linked_list.delete(10).unwrap();
     }
 }
