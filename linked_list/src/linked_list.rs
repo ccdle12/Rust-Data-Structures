@@ -23,24 +23,39 @@ impl<T> Default for LinkedList<T> {
     }
 }
 
-// Iterator that consumes the LinkedList.
-impl<T> Iterator for LinkedList<T>
+// Implements IntoIter for a LinkedList with a static lifetime of 'a (lifetime)
+// of tha list.
+impl<'a, T> IntoIterator for &'a LinkedList<T>
 where
     T: Clone + std::fmt::Debug,
 {
     type Item = T;
+    // IntoIter type is a LinkedListIterator of the same lifetime as the LinkedList.
+    type IntoIter = LinkedListIterator<'a, T>;
 
-    fn next(&mut self) -> Option<Self::Item> {
-        self.pop()
+    fn into_iter(self) -> Self::IntoIter {
+        LinkedListIterator {
+            list: self,
+            index: 0,
+        }
     }
 }
 
-impl<T> ExactSizeIterator for LinkedList<T>
+pub struct LinkedListIterator<'a, T> {
+    list: &'a LinkedList<T>,
+    index: usize,
+}
+
+impl<'a, T> Iterator for LinkedListIterator<'a, T>
 where
     T: Clone + std::fmt::Debug,
 {
-    fn len(&self) -> usize {
-        self.size as usize
+    type Item = T;
+    fn next(&mut self) -> Option<T> {
+        let result = self.list.get(self.index as u32);
+        self.index += 1;
+
+        return result;
     }
 }
 
@@ -48,6 +63,10 @@ impl<T> LinkedList<T>
 where
     T: Clone + std::fmt::Debug,
 {
+    pub fn len(&self) -> u32 {
+        self.size
+    }
+
     /// Adds a a value to the end of a LinkedList.
     ///
     /// Time Complexity: O(1)
@@ -159,7 +178,7 @@ where
     ///
     /// assert_eq!(linked_list.get(0), Some("Hello".to_string()));
     /// ```
-    pub fn get(&mut self, index: u32) -> Option<T> {
+    pub fn get(&self, index: u32) -> Option<T> {
         let mut current: NodeRef<T> = self.head.clone();
 
         for _i in 0..index {
@@ -397,6 +416,18 @@ mod test {
         for i in linked_list.into_iter() {
             assert_eq!(i, format!("{}", i));
         }
+
+        // Assert the iterator did not consume the linked_list.
+        assert_eq!(linked_list.get(2), Some("2".to_string()));
+    }
+
+    #[test]
+    fn iterator_function_calls() {
+        let linked_list = linked_list![1, 2, 3, 4, 5];
+        let result: Vec<u32> = linked_list.into_iter().map(|v| (v * 2) as u32).collect();
+
+        assert_eq!(result[0], 2);
+        assert_eq!(result[1], 4);
     }
 
     #[test]
