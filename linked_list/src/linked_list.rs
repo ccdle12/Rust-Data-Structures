@@ -1,7 +1,7 @@
 use crate::error::{LinkedListError, Result};
 use crate::node::{Node, NodeRef};
 use std::cell::RefCell;
-use std::iter::{ExactSizeIterator, Iterator};
+use std::iter::Iterator;
 use std::rc::Rc;
 
 /// LinkedList is a data structure that references each item T in memory, forming
@@ -23,8 +23,8 @@ impl<T> Default for LinkedList<T> {
     }
 }
 
-// Implements IntoIter for a LinkedList with a static lifetime of 'a (lifetime)
-// of tha list.
+// Implements IntoIter for a LinkedList with a lifetime of 'a - the same lifetime
+// as the LinkedList that is being referenced.
 impl<'a, T> IntoIterator for &'a LinkedList<T>
 where
     T: Clone + std::fmt::Debug,
@@ -41,6 +41,8 @@ where
     }
 }
 
+/// The Iterator implementation for the LinkedList. This Iterator will borrow
+/// the LinkedList.
 pub struct LinkedListIterator<'a, T> {
     list: &'a LinkedList<T>,
     index: usize,
@@ -52,7 +54,7 @@ where
 {
     type Item = T;
     fn next(&mut self) -> Option<T> {
-        let result = self.list.get(self.index as u32);
+        let result = self.list.get(self.index);
         self.index += 1;
 
         return result;
@@ -63,6 +65,10 @@ impl<T> LinkedList<T>
 where
     T: Clone + std::fmt::Debug,
 {
+    /// Returns the length of the LinkedList.
+    ///
+    /// Time Complexity: O(1)
+    /// Space Complexity: O(1)
     pub fn len(&self) -> u32 {
         self.size
     }
@@ -178,7 +184,7 @@ where
     ///
     /// assert_eq!(linked_list.get(0), Some("Hello".to_string()));
     /// ```
-    pub fn get(&self, index: u32) -> Option<T> {
+    pub fn get(&self, index: usize) -> Option<T> {
         let mut current: NodeRef<T> = self.head.clone();
 
         for _i in 0..index {
@@ -418,7 +424,7 @@ mod test {
         }
 
         // Assert the iterator did not consume the linked_list.
-        assert_eq!(linked_list.get(2), Some("2".to_string()));
+        assert_eq!(linked_list.get(2), Some("3".to_string()));
     }
 
     #[test]
