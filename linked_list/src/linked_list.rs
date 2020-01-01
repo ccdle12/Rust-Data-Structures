@@ -1,15 +1,13 @@
 use crate::error::{LinkedListError, Result};
 use crate::node::{Node, NodeRef};
-use std::cell::RefCell;
-use std::iter::{ExactSizeIterator, Iterator};
-use std::rc::Rc;
+use std::iter::Iterator;
 
 /// LinkedList is a data structure that references each item T in memory, forming
 /// a chain of referenced objects.
 #[derive(Clone)]
 pub struct LinkedList<T> {
-    head: NodeRef<T>,
-    tail: NodeRef<T>,
+    head: Option<NodeRef<T>>,
+    tail: Option<NodeRef<T>>,
     size: u32,
 }
 
@@ -52,7 +50,7 @@ where
 {
     type Item = T;
     fn next(&mut self) -> Option<T> {
-        let result = self.list.get(self.index as u32);
+        let result = self.list.get(self.index);
         self.index += 1;
 
         return result;
@@ -83,7 +81,7 @@ where
     /// assert_eq!(linked_list.tail(), Some("Hello".to_string()));
     /// ```
     pub fn push(&mut self, v: T) {
-        let new = Rc::new(RefCell::new(Node::new(v)));
+        let new = NodeRef::new(Node::new(v));
 
         if self.size == 0 {
             self.head = Some(new.clone());
@@ -92,7 +90,7 @@ where
             // The reason why "old" still exists is because theres another
             // NodeRef pointing to it.
             match self.tail.take() {
-                Some(old) => old.borrow_mut().next = Some(new.clone()),
+                Some(old) => old.0.borrow_mut().next = Some(new.clone()),
                 None => self.head = Some(new.clone()),
             };
         }
@@ -128,7 +126,7 @@ where
             //
             // Assign head to next,
             // If there isn't something, head is None, so tail should be None.
-            if let Some(next) = h.borrow_mut().next.take() {
+            if let Some(next) = h.0.borrow_mut().next.take() {
                 self.head = Some(next);
             } else {
                 self.tail.take();
@@ -137,15 +135,8 @@ where
             // Decrement the size as we have popped from the list.
             self.size -= 1;
 
-            // try_unwrap(h) will return the value in a Result if it has exactly
-            // ONLY one reference.
-            // Ok if there is something in there, and returns as an Option<T>.
-            // expect returns the value if Some
-            Rc::try_unwrap(h)
-                .ok()
-                .expect("something went wrong")
-                .into_inner()
-                .value
+            // Extracts the value from h and returns it.
+            h.extract_value()
         })
     }
 
@@ -178,17 +169,19 @@ where
     ///
     /// assert_eq!(linked_list.get(0), Some("Hello".to_string()));
     /// ```
-    pub fn get(&self, index: u32) -> Option<T> {
-        let mut current: NodeRef<T> = self.head.clone();
+    pub fn get(&self, index: usize) -> Option<T> {
+        let mut current: Option<NodeRef<T>> = self.head.clone();
 
         for _i in 0..index {
-            current.clone().map(|v| match v.borrow_mut().next.clone() {
-                Some(n) => current = Some(n),
-                None => current = None,
-            });
+            current
+                .clone()
+                .map(|v| match v.0.borrow_mut().next.clone() {
+                    Some(n) => current = Some(n),
+                    None => current = None,
+                });
         }
 
-        current.map(|v| v.borrow_mut().value.clone())
+        current.map(|v| v.0.borrow_mut().value.clone())
     }
 
     /// Returns the head of the List as an Option<T>.
@@ -207,7 +200,7 @@ where
     /// assert_eq!(linked_list.head(), Some("Hello".to_string()));
     /// ```
     pub fn head(&self) -> Option<T> {
-        self.head.as_ref().map(|h| h.borrow().value.clone())
+        self.head.as_ref().map(|h| h.0.borrow().value.clone())
     }
 
     /// Returns the tail of the List.
@@ -227,7 +220,7 @@ where
     /// assert_eq!(linked_list.tail(), Some("World".to_string()));
     /// ```
     pub fn tail(&self) -> Option<T> {
-        self.tail.as_ref().map(|t| t.borrow().value.clone())
+        self.tail.as_ref().map(|t| t.0.borrow().value.clone())
     }
 
     /// Deletes an item from the list according to an index.
@@ -254,7 +247,7 @@ where
         // Previous will drop the pointer to current, and then point to the new
         // next node, that comes after current.
         let mut previous = self.head.clone();
-        let mut current = previous.clone().unwrap().borrow_mut().next.clone();
+        let mut current = previous.clone().unwrap().0.borrow_mut().next.clone();
 
         if index == 0 {
             self.head = current.clone();
@@ -263,14 +256,14 @@ where
         if index > 0 {
             for _i in 0..index - 1 {
                 previous = current.clone();
-                current = current.clone().unwrap().borrow_mut().next.clone();
+                current = current.clone().unwrap().0.borrow_mut().next.clone();
             }
         }
 
-        let new_next = current.take().and_then(|v| v.borrow_mut().next.clone());
+        let new_next = current.take().and_then(|v| v.0.borrow_mut().next.clone());
         previous
             .clone()
-            .map(|v| v.borrow_mut().next = new_next.clone());
+            .map(|v| v.0.borrow_mut().next = new_next.clone());
 
         self.size -= 1;
 
@@ -418,7 +411,7 @@ mod test {
         }
 
         // Assert the iterator did not consume the linked_list.
-        assert_eq!(linked_list.get(2), Some("2".to_string()));
+        assert_eq!(linked_list.get(2), Some("3".to_string()));
     }
 
     #[test]
