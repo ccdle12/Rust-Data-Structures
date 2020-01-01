@@ -2,6 +2,7 @@ use crate::error::{LinkedListError, Result};
 use crate::node::{Node, NodeRef};
 use std::iter::Iterator;
 
+
 /// LinkedList is a data structure that references each item T in memory, forming
 /// a chain of referenced objects.
 #[derive(Clone)]
@@ -21,8 +22,8 @@ impl<T> Default for LinkedList<T> {
     }
 }
 
-// Implements IntoIter for a LinkedList with a static lifetime of 'a (lifetime)
-// of tha list.
+// Implements IntoIter for a LinkedList with a lifetime of 'a - the same lifetime
+// as the LinkedList that is being referenced.
 impl<'a, T> IntoIterator for &'a LinkedList<T>
 where
     T: Clone + std::fmt::Debug,
@@ -39,6 +40,8 @@ where
     }
 }
 
+/// The Iterator implementation for the LinkedList. This Iterator will borrow
+/// the LinkedList.
 pub struct LinkedListIterator<'a, T> {
     list: &'a LinkedList<T>,
     index: usize,
@@ -61,6 +64,10 @@ impl<T> LinkedList<T>
 where
     T: Clone + std::fmt::Debug,
 {
+    /// Returns the length of the LinkedList.
+    ///
+    /// Time Complexity: O(1)
+    /// Space Complexity: O(1)
     pub fn len(&self) -> u32 {
         self.size
     }
