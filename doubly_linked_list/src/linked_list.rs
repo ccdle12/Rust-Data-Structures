@@ -21,8 +21,8 @@ impl<T> Default for LinkedList<T> {
     }
 }
 
-// Implements IntoIter for a LinkedList with a lifetime of 'a - the same lifetime
-// as the LinkedList that is being referenced.
+/// Implements IntoIter for a LinkedList with a lifetime of 'a - the same lifetime
+/// as the LinkedList that is being referenced.
 impl<'a, T> IntoIterator for &'a LinkedList<T>
 where
     T: Clone + std::fmt::Debug,
@@ -35,6 +35,8 @@ where
         LinkedListIterator {
             list: self,
             index: 0,
+            size: self.size as usize,
+            exhausted: false,
         }
     }
 }
@@ -44,8 +46,14 @@ where
 pub struct LinkedListIterator<'a, T> {
     list: &'a LinkedList<T>,
     index: usize,
+    size: usize,
+    exhausted: bool,
 }
 
+// NOTE(ccdle12): Runtime is really bad.
+// Iterating from 0 -> index on each call.
+// Not actually following next pointers.
+// Need to cache current: Node<T> to ensure Linear time and reference Next.
 impl<'a, T> Iterator for LinkedListIterator<'a, T>
 where
     T: Clone + std::fmt::Debug,
@@ -55,7 +63,30 @@ where
         let result = self.list.get(self.index);
         self.index += 1;
 
-        return result;
+        result
+    }
+}
+
+// NOTE(ccdle12): Runtime is really bad.
+// Iterating calling get() from 0 -> size
+// Not actually following any previous pointer (not implemented)
+// Need to cache current: Node<T> to ensure Linear time and reference Previous.
+impl<'a, T> DoubleEndedIterator for LinkedListIterator<'a, T>
+where
+    T: Clone + std::fmt::Debug,
+{
+    fn next_back(&mut self) -> Option<T> {
+        if self.exhausted {
+            return None;
+        }
+
+        self.size -= 1;
+
+        if self.size == 0 {
+            self.exhausted = true
+        }
+
+        self.list.get(self.size)
     }
 }
 
@@ -67,8 +98,8 @@ where
     ///
     /// Time Complexity: O(1)
     /// Space Complexity: O(1)
-    pub fn len(&self) -> u32 {
-        self.size
+    pub fn len(&self) -> usize {
+        self.size as usize
     }
 
     /// Adds a a value to the end of a LinkedList.
@@ -409,12 +440,15 @@ mod singly_linked_list {
             linked_list.push(i.to_string());
         }
 
-        for i in linked_list.into_iter() {
-            assert_eq!(i, format!("{}", i));
-        }
+        let mut iter = linked_list.into_iter();
 
         // Assert the iterator did not consume the linked_list.
         assert_eq!(linked_list.get(2), Some("3".to_string()));
+        assert_eq!(iter.next(), Some("1".to_string()));
+        assert_eq!(iter.next(), Some("2".to_string()));
+        assert_eq!(iter.next(), Some("3".to_string()));
+        assert_eq!(iter.next(), Some("4".to_string()));
+        assert_eq!(iter.next(), None);
     }
 
     #[test]
@@ -525,8 +559,21 @@ mod doubly_linked_list {
     use super::*;
 
     #[test]
-    fn basic_previous() {
-        let list = linked_list![1, 2, 3];
-        assert_eq!(list.head(), Some(1));
+    fn reverse_iterator() {
+        let mut linked_list = LinkedList::<String>::default();
+
+        for i in 1..5 {
+            linked_list.push(i.to_string());
+        }
+
+        assert_eq!(linked_list.size, 4);
+        assert_eq!(linked_list.tail(), Some("4".to_string()));
+
+        let mut iter = linked_list.into_iter();
+        assert_eq!(Some("4".to_string()), iter.next_back());
+        assert_eq!(Some("3".to_string()), iter.next_back());
+        assert_eq!(Some("2".to_string()), iter.next_back());
+        assert_eq!(Some("1".to_string()), iter.next_back());
+        assert_eq!(None, iter.next_back());
     }
 }
