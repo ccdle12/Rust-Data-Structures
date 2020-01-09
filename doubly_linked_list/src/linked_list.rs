@@ -34,9 +34,7 @@ where
     fn into_iter(self) -> Self::IntoIter {
         LinkedListIterator {
             list: self,
-            index: 0,
-            size: self.size as usize,
-            exhausted: false,
+            current: None,
         }
     }
 }
@@ -45,48 +43,47 @@ where
 /// the LinkedList.
 pub struct LinkedListIterator<'a, T> {
     list: &'a LinkedList<T>,
-    index: usize,
-    size: usize,
-    exhausted: bool,
+    current: Option<NodeRef<T>>,
 }
 
-// NOTE(ccdle12): Runtime is really bad.
-// Iterating from 0 -> index on each call.
-// Not actually following next pointers.
-// Need to cache current: Node<T> to ensure Linear time and reference Next.
 impl<'a, T> Iterator for LinkedListIterator<'a, T>
 where
     T: Clone + std::fmt::Debug,
 {
     type Item = T;
     fn next(&mut self) -> Option<T> {
-        let result = self.list.get(self.index);
-        self.index += 1;
+        match self.current.clone() {
+            Some(_) => {
+                self.current
+                    .clone()
+                    .map(|v| self.current = v.0.borrow_mut().next.clone());
+            }
+            None => {
+                self.current = self.list.head.clone();
+            }
+        };
 
-        result
+        self.current.clone().map(|v| v.0.borrow_mut().value.clone())
     }
 }
 
-// NOTE(ccdle12): Runtime is really bad.
-// Iterating calling get() from 0 -> size
-// Not actually following any previous pointer (not implemented)
-// Need to cache current: Node<T> to ensure Linear time and reference Previous.
 impl<'a, T> DoubleEndedIterator for LinkedListIterator<'a, T>
 where
     T: Clone + std::fmt::Debug,
 {
     fn next_back(&mut self) -> Option<T> {
-        if self.exhausted {
-            return None;
-        }
+        match self.current.clone() {
+            Some(_) => {
+                self.current
+                    .clone()
+                    .map(|v| self.current = v.0.borrow_mut().previous.clone());
+            }
+            None => {
+                self.current = self.list.tail.clone();
+            }
+        };
 
-        self.size -= 1;
-
-        if self.size == 0 {
-            self.exhausted = true
-        }
-
-        self.list.get(self.size)
+        self.current.clone().map(|v| v.0.borrow_mut().value.clone())
     }
 }
 
@@ -127,7 +124,10 @@ where
             // The reason why "old" still exists is because theres another
             // NodeRef pointing to it.
             match self.tail.take() {
-                Some(old) => old.0.borrow_mut().next = Some(new.clone()),
+                Some(old) => {
+                    old.0.borrow_mut().next = Some(new.clone());
+                    new.0.borrow_mut().previous = Some(old.clone());
+                }
                 None => self.head = Some(new.clone()),
             };
         }
@@ -283,10 +283,13 @@ where
         let mut previous = self.head.clone();
         let mut current = previous.clone().unwrap().0.borrow_mut().next.clone();
 
+        // Delete at head.
         if index == 0 {
             self.head = current.clone();
+            self.head.clone().map(|v| v.0.borrow_mut().previous = None);
         }
 
+        // Deleting greater than head.
         if index > 0 {
             for _i in 0..index - 1 {
                 previous = current.clone();
@@ -294,10 +297,14 @@ where
             }
         }
 
+        current.clone().map(|v| v.0.borrow_mut().previous = None);
         let new_next = current.take().and_then(|v| v.0.borrow_mut().next.clone());
         previous
             .clone()
             .map(|v| v.0.borrow_mut().next = new_next.clone());
+        new_next
+            .clone()
+            .map(|v| v.0.borrow_mut().previous = previous.clone());
 
         self.size -= 1;
 
@@ -308,6 +315,8 @@ where
 
         if self.size == 1 {
             self.tail = self.head.clone();
+            self.tail.clone().map(|v| v.0.borrow_mut().previous = None);
+            self.head.clone().map(|v| v.0.borrow_mut().previous = None);
         }
 
         if self.size > 1 {
@@ -458,6 +467,9 @@ mod singly_linked_list {
 
         assert_eq!(result[0], 2);
         assert_eq!(result[1], 4);
+        assert_eq!(result[2], 6);
+        assert_eq!(result[3], 8);
+        assert_eq!(result[4], 10);
     }
 
     #[test]
@@ -575,5 +587,21 @@ mod doubly_linked_list {
         assert_eq!(Some("2".to_string()), iter.next_back());
         assert_eq!(Some("1".to_string()), iter.next_back());
         assert_eq!(None, iter.next_back());
+    }
+
+    #[test]
+    fn iterator_function_calls() {
+        let linked_list = linked_list![1, 2, 3, 4, 5];
+        let result: Vec<u32> = linked_list
+            .into_iter()
+            .rev()
+            .map(|v| (v * 2) as u32)
+            .collect();
+
+        assert_eq!(result[0], 10);
+        assert_eq!(result[1], 8);
+        assert_eq!(result[2], 6);
+        assert_eq!(result[3], 4);
+        assert_eq!(result[4], 2);
     }
 }
