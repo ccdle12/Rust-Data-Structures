@@ -1,4 +1,3 @@
-use crate::error::{LinkedListError, Result};
 use crate::node::{Node, NodeRef};
 use std::iter::Iterator;
 
@@ -136,7 +135,8 @@ where
         self.size += 1;
     }
 
-    /// Returns the value from a LinkedList and removes it from the LinkedList.
+    /// Returns the value the head of a LinkedList and removes it from the
+    /// LinkedList.
     ///
     /// Time Complexity: O(1)
     /// Space Complexity: O(1)
@@ -149,10 +149,10 @@ where
     /// let mut linked_list = LinkedList::<String>::default();
     /// linked_list.push("Hello".to_string());
     ///
-    /// assert_eq!(linked_list.pop(), Some("Hello".to_string()));
+    /// assert_eq!(linked_list.pop_front(), Some("Hello".to_string()));
     /// assert_eq!(linked_list.is_empty(), true);
     /// ```
-    pub fn pop(&mut self) -> Option<T> {
+    pub fn pop_front(&mut self) -> Option<T> {
         // Takes ownership of head.
         // map() applies to the inner value of Option (Rc)
         // map() will return an Option, but we'll change the inner value of it
@@ -174,6 +174,37 @@ where
 
             // Extracts the value from h and returns it.
             h.get_value()
+        })
+    }
+
+    /// Returns the value the tail of a LinkedList and removes it from the
+    /// LinkedList.
+    ///
+    /// Time Complexity: O(1)
+    /// Space Complexity: O(1)
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use linked_list::LinkedList;
+    ///
+    /// let mut linked_list = LinkedList::<String>::default();
+    /// linked_list.push("Hello".to_string());
+    /// linked_list.push("World".to_string());
+    ///
+    /// assert_eq!(linked_list.pop_back(), Some("World".to_string()));
+    /// assert_eq!(linked_list.len(), 1);
+    /// ```
+    pub fn pop_back(&mut self) -> Option<T> {
+        self.tail.take().map(|mut v| {
+            if let Some(previous) = v.0.borrow_mut().previous.take() {
+                self.tail = Some(previous);
+            } else {
+                self.head.take();
+            }
+
+            self.size -= 1;
+            v.get_value()
         })
     }
 
@@ -257,74 +288,74 @@ where
         self.tail.as_ref().map(|t| t.0.borrow().value.clone())
     }
 
-    /// Deletes an item from the list according to an index.
-    ///
-    /// Time Complexity: O(n)
-    /// Space Complexity: O(1)
-    ///
-    /// # Example
-    /// ```
-    /// use linked_list::LinkedList;
-    /// let mut linked_list = LinkedList::<String>::default();
-    /// linked_list.push("Hello".to_string());
-    /// linked_list.push("World".to_string());
-    ///
-    /// linked_list.delete(1);
-    /// assert_eq!(linked_list.len(), 1);
-    /// ```
-    pub fn delete(&mut self, index: u32) -> Result<()> {
-        if index > self.size - 1 {
-            return Err(LinkedListError::IndexOutOfRangeError);
-        }
+    // /// Deletes an item from the list according to an index.
+    //
+    // /// Time Complexity: O(n)
+    // /// Space Complexity: O(1)
+    //
+    // /// # Example
+    // /// ```
+    // /// use linked_list::LinkedList;
+    // /// let mut linked_list = LinkedList::<String>::default();
+    // /// linked_list.push("Hello".to_string());
+    // /// linked_list.push("World".to_string());
+    //
+    // /// linked_list.delete(1);
+    // /// assert_eq!(linked_list.len(), 1);
+    // /// ```
+    // pub fn delete(&mut self, index: u32) -> Result<()> {
+    // if index > self.size - 1 {
+    //     return Err(LinkedListError::IndexOutOfRangeError);
+    // }
 
-        // Current is the node that will be deleted.
-        // Previous will drop the pointer to current, and then point to the new
-        // next node, that comes after current.
-        let mut previous = self.head.clone();
-        let mut current = previous.clone().unwrap().0.borrow_mut().next.clone();
+    // // Current is the node that will be deleted.
+    // // Previous will drop the pointer to current, and then point to the new
+    // // next node, that comes after current.
+    // let mut previous = self.head.clone();
+    // let mut current = previous.clone().unwrap().0.borrow_mut().next.clone();
 
-        // Delete at head.
-        if index == 0 {
-            self.head = current.clone();
-            self.head.clone().map(|v| v.0.borrow_mut().previous = None);
-        }
+    // // Delete at head.
+    // if index == 0 {
+    //     self.head = current.clone();
+    //     self.head.clone().map(|v| v.0.borrow_mut().previous = None);
+    // }
 
-        // Deleting greater than head.
-        if index > 0 {
-            for _i in 0..index - 1 {
-                previous = current.clone();
-                current = current.clone().unwrap().0.borrow_mut().next.clone();
-            }
-        }
+    // // Deleting greater than head.
+    // if index > 0 {
+    //     for _i in 0..index - 1 {
+    //         previous = current.clone();
+    //         current = current.clone().unwrap().0.borrow_mut().next.clone();
+    //     }
+    // }
 
-        current.clone().map(|v| v.0.borrow_mut().previous = None);
-        let new_next = current.take().and_then(|v| v.0.borrow_mut().next.clone());
-        previous
-            .clone()
-            .map(|v| v.0.borrow_mut().next = new_next.clone());
-        new_next
-            .clone()
-            .map(|v| v.0.borrow_mut().previous = previous.clone());
+    // current.clone().map(|v| v.0.borrow_mut().previous = None);
+    // let new_next = current.take().and_then(|v| v.0.borrow_mut().next.clone());
+    // previous
+    //     .clone()
+    //     .map(|v| v.0.borrow_mut().next = new_next.clone());
+    // new_next
+    //     .clone()
+    //     .map(|v| v.0.borrow_mut().previous = previous.clone());
 
-        self.size -= 1;
+    // self.size -= 1;
 
-        if self.size == 0 {
-            self.tail = None;
-            self.head = None;
-        }
+    // if self.size == 0 {
+    //     self.tail = None;
+    //     self.head = None;
+    // }
 
-        if self.size == 1 {
-            self.tail = self.head.clone();
-            self.tail.clone().map(|v| v.0.borrow_mut().previous = None);
-            self.head.clone().map(|v| v.0.borrow_mut().previous = None);
-        }
+    // if self.size == 1 {
+    //     self.tail = self.head.clone();
+    //     self.tail.clone().map(|v| v.0.borrow_mut().previous = None);
+    //     self.head.clone().map(|v| v.0.borrow_mut().previous = None);
+    // }
 
-        if self.size > 1 {
-            self.tail = previous;
-        }
+    // if self.size > 1 {
+    //     self.tail = previous;
+    // }
 
-        Ok(())
-    }
+    // Ok(())
+    // }
 }
 
 #[allow(unused_macros)]
@@ -429,7 +460,7 @@ mod singly_linked_list {
     }
 
     #[test]
-    fn pop() {
+    fn pop_front() {
         let mut linked_list = LinkedList::<String>::default();
 
         for i in 1..5 {
@@ -437,7 +468,7 @@ mod singly_linked_list {
         }
 
         assert_eq!(linked_list.head(), Some("1".to_string()));
-        assert_eq!(linked_list.pop(), Some("1".to_string()));
+        assert_eq!(linked_list.pop_front(), Some("1".to_string()));
         assert_eq!(linked_list.head(), Some("2".to_string()));
     }
 
@@ -479,90 +510,29 @@ mod singly_linked_list {
     }
 
     #[test]
-    fn delete_item() {
-        let mut linked_list = linked_list![
-            "1".to_string(),
-            "2".to_string(),
-            "3".to_string(),
-            "4".to_string(),
-            "5".to_string()
-        ];
-        assert_eq!(linked_list.len(), 5);
-        assert_eq!(linked_list.get(2), Some("3".to_string()));
+    fn pop_back() {
+        let mut linked_list = linked_list!["1".to_string(), "2".to_string(), "3".to_string()];
+        assert_eq!(linked_list.len(), 3);
 
-        linked_list.delete(2).unwrap();
-        assert_eq!(linked_list.len(), 4);
-        assert_eq!(linked_list.get(0), Some("1".to_string()));
-        assert_eq!(linked_list.get(1), Some("2".to_string()));
-        assert_eq!(linked_list.get(2), Some("4".to_string()));
-        assert_eq!(linked_list.get(3), Some("5".to_string()));
-    }
-
-    #[test]
-    fn deleting_head() {
-        let mut linked_list = linked_list!["1".to_string()];
-        assert_eq!(linked_list.len(), 1);
-
-        linked_list.delete(0).unwrap();
-        assert_eq!(linked_list.len(), 0);
-        assert_eq!(linked_list.head(), None);
-
-        linked_list.push("2".to_string());
-        linked_list.push("3".to_string());
-        assert_eq!(linked_list.len(), 2);
-        assert_eq!(linked_list.head(), Some("2".to_string()));
-        assert_eq!(linked_list.tail(), Some("3".to_string()));
-        assert_eq!(linked_list.get(0), Some("2".to_string()));
-        assert_eq!(linked_list.get(1), Some("3".to_string()));
-
-        linked_list.delete(0).unwrap();
-        assert_eq!(linked_list.len(), 1);
-        assert_eq!(linked_list.head(), Some("3".to_string()));
-        assert_eq!(linked_list.tail(), Some("3".to_string()));
-        assert_eq!(linked_list.get(0), Some("3".to_string()));
-        assert_eq!(linked_list.get(1), None);
-    }
-
-    #[test]
-    fn deleting_tail() {
-        let mut linked_list = linked_list!["1".to_string(), "2".to_string()];
-        assert_eq!(linked_list.len(), 2);
+        let popped = linked_list.pop_back();
+        assert_eq!(popped, Some("3".to_string()));
         assert_eq!(linked_list.tail(), Some("2".to_string()));
-        assert_eq!(linked_list.get(1), Some("2".to_string()));
+        assert_eq!(linked_list.len(), 2);
 
-        linked_list.delete(1).unwrap();
-        assert_eq!(linked_list.len(), 1);
-        assert_eq!(linked_list.get(0), Some("1".to_string()));
-        assert_eq!(linked_list.get(1), None);
+        let popped = linked_list.pop_back();
+        assert_eq!(popped, Some("2".to_string()));
         assert_eq!(linked_list.tail(), Some("1".to_string()));
+        assert_eq!(linked_list.len(), 1);
 
-        linked_list.delete(0).unwrap();
-        assert_eq!(linked_list.len(), 0);
-        assert_eq!(linked_list.get(0), None);
-        assert_eq!(linked_list.head(), None);
+        let popped = linked_list.pop_back();
+        assert_eq!(popped, Some("1".to_string()));
         assert_eq!(linked_list.tail(), None);
+        assert_eq!(linked_list.len(), 0);
 
-        for i in 0..10 {
-            linked_list.push(i.to_string());
-        }
-        assert_eq!(linked_list.len(), 10);
-        assert_eq!(linked_list.head(), Some("0".to_string()));
-        assert_eq!(linked_list.tail(), Some("9".to_string()));
-
-        linked_list.delete(9).unwrap();
-        assert_eq!(linked_list.len(), 9);
-        assert_eq!(linked_list.tail(), Some("8".to_string()));
-
-        linked_list.delete(8).unwrap();
-        assert_eq!(linked_list.len(), 8);
-        assert_eq!(linked_list.tail(), Some("7".to_string()));
-    }
-
-    #[test]
-    #[should_panic]
-    fn delete_index_greater_than_size() {
-        let mut linked_list = linked_list!["1".to_string(), "2".to_string()];
-        linked_list.delete(10).unwrap();
+        let popped = linked_list.pop_back();
+        assert_eq!(popped, None);
+        assert_eq!(linked_list.tail(), None);
+        assert_eq!(linked_list.len(), 0);
     }
 }
 
@@ -591,17 +561,19 @@ mod doubly_linked_list {
 
     #[test]
     fn iterator_function_calls() {
-        let linked_list = linked_list![1, 2, 3, 4, 5];
+        let mut linked_list = linked_list![1, 2, 3, 4, 5];
+
+        let _popped = linked_list.pop_back();
+        let _popped = linked_list.pop_front();
+
         let result: Vec<u32> = linked_list
             .into_iter()
             .rev()
             .map(|v| (v * 2) as u32)
             .collect();
 
-        assert_eq!(result[0], 10);
-        assert_eq!(result[1], 8);
-        assert_eq!(result[2], 6);
-        assert_eq!(result[3], 4);
-        assert_eq!(result[4], 2);
+        assert_eq!(result[0], 8);
+        assert_eq!(result[1], 6);
+        assert_eq!(result[2], 4);
     }
 }
