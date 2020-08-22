@@ -39,7 +39,7 @@ where
         let current = current.unwrap();
 
         if target < current.value {
-            return match self.adjaceny_list.get(current.left as usize) {
+            return match self.get_at_index(current.left) {
                 Some(x) => self.recursive_push(target, Some(x.clone())),
                 None => {
                     let node = Node {
@@ -59,30 +59,29 @@ where
         Some(true)
     }
 
-    pub fn get(&self, target: T) -> Option<T> {
-        let mut current = self.get_root_node().unwrap().clone();
+    /// Returns a target T from the BinaryTree.
+    pub fn get<'a>(&'a self, target: &T) -> Option<&'a T> {
+        // TODO: Handle unwrap
+        // - Replace with ? using a error/result type for the project.
+        // - If an Err, return empty list error.
+        let current = self.get_root_node().unwrap();
 
-        if current.value == target {
-            return Some(current.value);
-        }
-
-        match self.recursive_get(target, Some(current.clone())) {
-            Some(x) => Some(x.value),
+        match self.recursive_get(target, &current) {
+            Some(x) => Some(&x.value),
             None => None,
         }
     }
 
-    // TODO: lifetimes
-    fn recursive_get(&self, target: T, current: Option<Node<T>>) -> Option<Node<T>> {
-        let current = current.unwrap();
-
-        if current.value == target {
+    /// Internal function. It recursively walks the three until the target T is
+    /// found.
+    fn recursive_get<'a>(&'a self, target: &T, current: &'a Node<T>) -> Option<&'a Node<T>> {
+        if current.value == *target {
             return Some(current);
         }
 
-        if target < current.value {
+        if *target < current.value {
             return match self.get_at_index(current.left) {
-                Some(x) => self.recursive_get(target, Some(x.clone())),
+                Some(next_node) => self.recursive_get(target, next_node),
                 None => None,
             };
         }
@@ -91,11 +90,11 @@ where
     }
 
     fn get_at_index(&self, index: u16) -> Option<&Node<T>> {
-        Some(self.adjaceny_list.get(index as usize).unwrap())
+        self.adjaceny_list.get(index as usize)
     }
 
     fn get_root_node(&self) -> Option<&Node<T>> {
-        Some(self.adjaceny_list.get(0).unwrap())
+        self.adjaceny_list.get(0)
     }
 
     pub fn get_root(&self) -> Option<&T> {
@@ -136,6 +135,6 @@ mod test {
         btree.push(10);
         btree.push(5);
         assert_eq!(btree.get_root(), Some(&10));
-        assert_eq!(btree.get(5), Some(5))
+        assert_eq!(btree.get(&5), Some(&5))
     }
 }
