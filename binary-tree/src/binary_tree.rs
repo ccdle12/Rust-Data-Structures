@@ -27,7 +27,7 @@ where
         // - While left is not empty?
         // if value < self.get_root().unwrap() {
 
-        let root = Some(self.get_root_node().unwrap().clone());
+        let root = self.get_root_node().unwrap().clone();
         self.recursive_push(value, root);
 
         Some(true)
@@ -35,12 +35,10 @@ where
 
     // TODO: Return a Result<>
     // - Figure out lifetime annotations.
-    fn recursive_push(&mut self, target: T, current: Option<Node<T>>) -> Option<bool> {
-        let current = current.unwrap();
-
+    fn recursive_push(&mut self, target: T, current: Node<T>) -> Option<bool> {
         if target < current.value {
             return match self.get_at_index(current.left) {
-                Some(x) => self.recursive_push(target, Some(x.clone())),
+                Some(x) => self.recursive_push(target, x.clone()),
                 None => {
                     let node = Node {
                         value: target.clone(),
@@ -65,11 +63,7 @@ where
         // - Replace with ? using a error/result type for the project.
         // - If an Err, return empty list error.
         let current = self.get_root_node().unwrap();
-
-        match self.recursive_get(target, &current) {
-            Some(x) => Some(&x.value),
-            None => None,
-        }
+        self.recursive_get(target, &current).map(|x| &x.value)
     }
 
     /// Internal function. It recursively walks the three until the target T is
@@ -80,10 +74,9 @@ where
         }
 
         if *target < current.value {
-            return match self.get_at_index(current.left) {
-                Some(next_node) => self.recursive_get(target, next_node),
-                None => None,
-            };
+            if let Some(next_node) = self.get_at_index(current.left) {
+                return self.recursive_get(target, next_node);
+            }
         }
 
         None
