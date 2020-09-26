@@ -1,115 +1,88 @@
+use std::cmp::Ordering;
+
+/// Node is a private struct that contains each node in the tree.
+#[derive(Clone, Debug)]
+struct Node<T> {
+    value: T,
+    left: Option<Box<Node<T>>>,
+    right: Option<Box<Node<T>>>,
+}
+
 /// Binary Tree is the main struct holding an adjaceny_list to keep track of
 /// nodes in the tree.
 pub struct BinaryTree<T> {
-    adjaceny_list: Vec<Node<T>>,
+    root: Option<Box<Node<T>>>,
 }
 
 impl<T> BinaryTree<T>
 where
     T: Clone + Ord,
 {
-    // TODO:
-    // 1. Refactor Option<bool> -> Result<Option<bool>>
-    pub fn push(&mut self, value: T) -> Option<bool> {
-        // 1. if 0 index is empty, add it so it is root.
-        if self.adjaceny_list.len() == 0 {
-            let node = Node {
-                value: value.clone(),
-                index: 0,
-                left: 1,
-                right: 2,
-            };
+    pub fn add(&mut self, value: T) {
+        // Take ownership of root and move it to the local variable. Root is
+        // replaced with None.
+        let root = std::mem::replace(&mut self.root, None);
 
-            self.adjaceny_list.insert(0, node);
-        }
-
-        // 2. Traverse and add a node.
-        // - While left is not empty?
-        // if value < self.get_root().unwrap() {
-
-        let root = self.get_root_node().unwrap().clone();
-        self.recursive_push(value, root);
-
-        Some(true)
+        // add_recursive, rebuilds the entire tree, returning the root.
+        self.root = self.add_recursive(root, value);
     }
 
-    // TODO: Return a Result<>
-    // - Figure out lifetime annotations.
-    fn recursive_push(&mut self, target: T, current: Node<T>) -> Option<bool> {
-        if target < current.value {
-            return match self.get_at_index(current.left) {
-                Some(x) => self.recursive_push(target, x.clone()),
-                None => {
-                    let node = Node {
-                        value: target.clone(),
-                        index: current.left,
-                        left: (current.left + 2),
-                        right: (current.left + 3),
-                    };
-
-                    self.adjaceny_list.insert(current.left.into(), node);
-
-                    Some(true)
+    fn add_recursive(&mut self, node: Option<Box<Node<T>>>, target: T) -> Option<Box<Node<T>>> {
+        match node {
+            Some(mut n) => {
+                if n.value <= target {
+                    n.left = self.add_recursive(n.left, target);
+                    Some(n)
+                } else {
+                    n.right = self.add_recursive(n.right, target);
+                    Some(n)
                 }
-            };
-        }
-
-        Some(true)
-    }
-
-    /// Returns a target T from the BinaryTree.
-    pub fn get<'a>(&'a self, target: &T) -> Option<&'a T> {
-        // TODO: Handle unwrap
-        // - Replace with ? using a error/result type for the project.
-        // - If an Err, return empty list error.
-        let current = self.get_root_node().unwrap();
-        self.recursive_get(target, &current).map(|x| &x.value)
-    }
-
-    /// Internal function. It recursively walks the three until the target T is
-    /// found.
-    fn recursive_get<'a>(&'a self, target: &T, current: &'a Node<T>) -> Option<&'a Node<T>> {
-        if current.value == *target {
-            return Some(current);
-        }
-
-        if *target < current.value {
-            if let Some(next_node) = self.get_at_index(current.left) {
-                return self.recursive_get(target, next_node);
             }
+            _ => Some(Box::new(Node {
+                value: target,
+                left: None,
+                right: None,
+            })),
+        }
+    }
+
+    pub fn get(&self, target: T) -> Option<T> {
+        self.get_recursive(self.root.clone(), target)
+    }
+
+    fn get_recursive(&self, node: Option<Box<Node<T>>>, target: T) -> Option<T> {
+        match node {
+            Some(n) => match n.value.cmp(&target) {
+                Ordering::Less => self.get_recursive(n.left, target),
+                Ordering::Greater => self.get_recursive(n.right, target),
+                Ordering::Equal => Some(n.value.clone()),
+            },
+            _ => None,
+        }
+    }
+
+    fn get_root_node(&self) -> Option<Box<Node<T>>> {
+        if self.root.is_some() {
+            let node = self.root.clone().unwrap();
+            return Some(node);
         }
 
         None
     }
 
-    fn get_at_index(&self, index: u16) -> Option<&Node<T>> {
-        self.adjaceny_list.get(index as usize)
-    }
+    pub fn get_root(&self) -> Option<T> {
+        if let Some(root) = self.get_root_node() {
+            return Some(root.value);
+        }
 
-    fn get_root_node(&self) -> Option<&Node<T>> {
-        self.adjaceny_list.get(0)
-    }
-
-    pub fn get_root(&self) -> Option<&T> {
-        Some(&self.get_root_node().unwrap().value)
+        None
     }
 }
 
 impl<T> Default for BinaryTree<T> {
     fn default() -> Self {
-        BinaryTree {
-            adjaceny_list: Vec::new(),
-        }
+        BinaryTree { root: None }
     }
-}
-
-/// Node is a private struct that contains each node in the tree.
-#[derive(Clone)]
-struct Node<T> {
-    value: T,
-    index: u16,
-    left: u16,
-    right: u16,
 }
 
 mod test {
@@ -118,16 +91,21 @@ mod test {
     #[test]
     fn add_root() {
         let mut btree = BinaryTree::<u16>::default();
-        btree.push(10);
-        assert_eq!(btree.get_root(), Some(&10))
+        btree.add(10);
+
+        assert_eq!(btree.get_root(), Some(10))
     }
 
     #[test]
     fn push_and_get() {
         let mut btree = BinaryTree::<u16>::default();
-        btree.push(10);
-        btree.push(5);
-        assert_eq!(btree.get_root(), Some(&10));
-        assert_eq!(btree.get(&5), Some(&5))
+        btree.add(10);
+        btree.add(5);
+        assert_eq!(btree.get_root(), Some(10));
+        assert_eq!(btree.get(5), Some(5));
+
+        btree.add(7);
+        assert_eq!(btree.get(7), Some(7));
+        assert_eq!(btree.get_root(), Some(10));
     }
 }
